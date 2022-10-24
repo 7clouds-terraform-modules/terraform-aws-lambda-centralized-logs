@@ -51,13 +51,13 @@ resource "aws_iam_role" "kinesis_role" {
         },
         {
           Action = "${concat(var.POLICY_STATEMENT_ACTION, [
-          "kinesis:DescribeStream",
-					"kinesis:GetShardIterator",
-					"kinesis:GetRecords",
-					"kinesis:ListShards",
-					"kms:Decrypt",
-					"kms:GenerateDataKey",
-					"logs:PutLogEvents"])}"
+            "kinesis:DescribeStream",
+            "kinesis:GetShardIterator",
+            "kinesis:GetRecords",
+            "kinesis:ListShards",
+            "kms:Decrypt",
+            "kms:GenerateDataKey",
+          "logs:PutLogEvents"])}"
           Effect   = "Allow"
           Resource = ["*"]
         },

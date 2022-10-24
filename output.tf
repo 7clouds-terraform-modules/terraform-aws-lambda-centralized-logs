@@ -65,7 +65,7 @@ output "GLUE_DB_NAME" {
 
 output "POLICY_STATEMENT_ACTION" {
   description = "Block of additional actions for Kinesis Roles"
-  value = var.POLICY_STATEMENT_ACTION
+  value       = var.POLICY_STATEMENT_ACTION
 }
 
 output "TAGS" {

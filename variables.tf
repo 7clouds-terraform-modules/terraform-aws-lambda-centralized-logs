@@ -81,9 +81,9 @@ variable "GLUE_DB_NAME" {
 }
 
 variable "POLICY_STATEMENT_ACTION" {
-  type = list(any)
+  type        = list(any)
   description = "Block of additional actions for Kinesis Roles"
-  default = []
+  default     = []
 }
 
 variable "TAGS" {

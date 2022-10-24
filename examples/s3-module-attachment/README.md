@@ -20,8 +20,11 @@ module "s3_bucket" {
   RESTRICT_PUBLIC_BUCKETS      = true
   SERVER_SIDE_ENCRYPTION_CONFIGURATION = {
     rule = {
-      sse_algorithm = "aes256"
-  }}
+      apply_server_side_encryption_by_default = {
+      sse_algorithm = "AES256"
+      }
+  }
+}
   LOCALS_LIFECYCLE_RULES = [
     {
       id     = "a8b0f5724a7211edb8780242ac120002"

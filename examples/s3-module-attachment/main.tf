@@ -13,8 +13,11 @@ module "s3_bucket" {
   RESTRICT_PUBLIC_BUCKETS      = true
   SERVER_SIDE_ENCRYPTION_CONFIGURATION = {
     rule = {
-      sse_algorithm = "aes256"
-  }}
+      apply_server_side_encryption_by_default = {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
   LOCALS_LIFECYCLE_RULES = [
     {
       id     = "a8b0f5724a7211edb8780242ac120002"
@@ -58,9 +61,9 @@ module "centralized_logs" {
   BUFFERING_SIZE_IN_MBS                                = 5
   GLUE_CRAWLER_SCHEDULE                                = "cron(0 12 * * ? *)"
   GLUE_DB_NAME                                         = "new_modules_glue_database_1234567890"
-  POLICY_STATEMENT_ACTION                              = ["lambda:InvokeFunction",
-                                                          "lambda:GetFunctionConfiguration"]
-  TAGS                                                 = null
+  POLICY_STATEMENT_ACTION = ["lambda:InvokeFunction",
+  "lambda:GetFunctionConfiguration"]
+  TAGS = null
 
   depends_on = [module.s3_bucket]
 }
