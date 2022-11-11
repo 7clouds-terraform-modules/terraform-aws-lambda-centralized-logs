@@ -57,7 +57,7 @@ resource "aws_iam_role" "kinesis_role" {
             "kinesis:ListShards",
             "kms:Decrypt",
             "kms:GenerateDataKey",
-          "logs:PutLogEvents"])}"
+            "logs:PutLogEvents"])}"
           Effect   = "Allow"
           Resource = ["*"]
         },
