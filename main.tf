@@ -91,7 +91,6 @@ resource "aws_kinesis_firehose_delivery_stream" "kinesis_firehose_delivery_strea
   }
 }
 
-#WE ARE OMMITING THE CATALOG'S ID IN ORDER TO ATTACH THE RESOURCE TO THE AWS ACCOUNT BY DEFAULT
 resource "aws_glue_catalog_database" "glue_database" {
   name = var.GLUE_DB_NAME
 }
