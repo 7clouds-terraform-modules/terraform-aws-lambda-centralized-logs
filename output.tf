@@ -33,6 +33,11 @@ output "LOGS_BUCKET_ARN" {
   value       = var.LOGS_BUCKET_ARN
 }
 
+output "KINESIS_FIREHOSE_DELIVERY_STREAM_NAME" {
+  description = "For setting the Athena Workgroup's state"
+  value       = aws_kinesis_firehose_delivery_stream.kinesis_firehose_delivery_stream.name
+}
+
 output "KINESIS_FIREHOSE_DELIVERY_STREAM_SUFFIX" {
   description = "For setting the suffix on the extended s3 configuration"
   value       = var.KINESIS_FIREHOSE_DELIVERY_STREAM_SUFFIX
