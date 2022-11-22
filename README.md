@@ -27,6 +27,10 @@ This solution allows you to get, manage and store logs from an application. It m
 * This bucket's ID and ARN are requirements for this module's successful deployment
 * We have a S3 Bucket module available, you may check it's usage along with the present module in the "s3-module-attachment" example
 
+## Small Fix on Version 0.1.1
+
+Added Kinesis Firehose Stream Name as output.
+
 ```hcl
 module "centralized_logs" {
   source = "../.."
