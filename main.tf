@@ -80,8 +80,8 @@ resource "aws_kinesis_firehose_delivery_stream" "kinesis_firehose_delivery_strea
     prefix              = var.ENVIRONMENT != "" ? "logs/${var.ENVIRONMENT}${var.KINESIS_FIREHOSE_DELIVERY_STREAM_SUFFIX}" : "logs${var.KINESIS_FIREHOSE_DELIVERY_STREAM_SUFFIX}"
     error_output_prefix = var.ENVIRONMENT != "" ? "logs/${var.ENVIRONMENT}${var.KINESIS_FIREHOSE_DELIVERY_STREAM_ERROR_OUTPUT_SUFFIX}" : "logs${var.KINESIS_FIREHOSE_DELIVERY_STREAM_ERROR_OUTPUT_SUFFIX}"
     role_arn            = aws_iam_role.kinesis_role.arn
-    buffer_interval     = var.BUFFERING_INTERVAL_IN_SECONDS
-    buffer_size         = var.BUFFERING_SIZE_IN_MBS
+    buffering_interval     = var.BUFFERING_INTERVAL_IN_SECONDS
+    buffering_size         = var.BUFFERING_SIZE_IN_MBS
   }
   tags = var.TAGS != null ? "${
     merge(var.TAGS, {
