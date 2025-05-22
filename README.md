@@ -17,6 +17,24 @@ This solution allows you to get, manage and store logs from an application. It m
 3. Athena references Glue data catalogs and enables advanced query capabilities on log stored data
 4. You now have an economic way to manage and store your logs and three different ways to access them, directly in the S3 Bucket, in the GlueDB and also via Athena
 
+## Target S3 Bucket Configuration Recommendations
+
+When providing an S3 bucket for this module (`var.LOGS_BUCKET_NAME`), please consider the following best practices for security and cost management:
+
+*   **Server-Side Encryption (SSE):** It is crucial that your S3 bucket has Server-Side Encryption (SSE) enabled to protect your logs at rest. You can use SSE-S3 (AES256 encryption, often a default for new buckets) or SSE-KMS with a customer-managed key.
+*   **Block Public Access:** Ensure your S3 bucket is configured to block all public access. This is a critical security measure to prevent unauthorized access to your logs.
+*   **Lifecycle Policies:** Consider implementing S3 Lifecycle policies for your logs bucket. This can help you optimize storage costs by transitioning older logs to more cost-effective storage classes (e.g., S3 Glacier, S3 Intelligent-Tiering) or by setting up automatic deletion after a defined retention period.
+*   **Permissions:** The IAM role used by Kinesis Data Firehose (created by this module) will be granted the necessary permissions to write to your bucket. Ensure your bucket policy does not explicitly deny these actions if you have a restrictive policy in place.
+
+## Encryption
+
+This module supports several encryption capabilities:
+
+*   **S3 Destination Encryption:** Data delivered by Kinesis Data Firehose to the S3 bucket is encrypted. By default, this uses AWS S3-managed keys (SSE-S3, AES256). You can optionally provide a Customer Managed Key (CMK) ARN via the `firehose_s3_kms_key_arn` variable for enhanced control over key management.
+*   **Kinesis Data Firehose Stream Encryption:** The Firehose delivery stream itself can be encrypted. By providing a CMK ARN in the `firehose_stream_kms_key_arn` variable, you enable stream encryption using your key. If this variable is not set, stream encryption with a customer-managed key is not configured.
+*   **IAM Permissions:** The module attempts to scope IAM permissions for AWS KMS (Key Management Service) to the specific keys you provide. If no keys are specified for Firehose, the IAM role will have broader KMS permissions which should be reviewed in production environments.
+*   **Target S3 Bucket:** Remember to configure Server-Side Encryption on the target S3 bucket itself as per the "Target S3 Bucket Configuration Recommendations" section.
+
 ## Diagram
 
 ![Amazon AWS Resources Set Diagram for Kinesis, Glue DB, Athena and Bucket for storing logs](https://user-images.githubusercontent.com/106110465/195728293-12d8c5b6-957c-4d71-9b01-2574d9086821.png "7Clouds Centralized Logs Infrastructure")
@@ -94,6 +112,8 @@ No requirements.
 | <a name="input_BUFFERING_INTERVAL_IN_SECONDS"></a> [BUFFERING\_INTERVAL\_IN\_SECONDS](#input\_BUFFERING\_INTERVAL\_IN\_SECONDS) | Buffer interval in seconds | `number` | `60` | no |
 | <a name="input_BUFFERING_SIZE_IN_MBS"></a> [BUFFERING\_SIZE\_IN\_MBS](#input\_BUFFERING\_SIZE\_IN\_MBS) | Buffer size in MBs | `number` | `5` | no |
 | <a name="input_ENVIRONMENT"></a> [ENVIRONMENT](#input\_ENVIRONMENT) | Project Environment | `string` | `""` | no |
+| <a name="input_firehose_s3_kms_key_arn"></a> [firehose\_s3\_kms\_key\_arn](#input\_firehose\_s3\_kms\_key\_arn) | Optional Customer Managed KMS key ARN for server-side encryption of data delivered to S3 by Firehose. If not provided, data will be encrypted using an AWS S3-managed key (SSE-S3/AES256 by default for the extended\_s3 destination). | `string` | `null`  | no       |
+| <a name="input_firehose_stream_kms_key_arn"></a> [firehose\_stream\_kms\_key\_arn](#input\_firehose\_stream\_kms\_key\_arn) | Optional Customer Managed KMS key ARN to enable and use for Kinesis Data Firehose stream encryption. If not provided, stream encryption with a customer key is disabled.        | `string` | `null`  | no       |
 | <a name="input_GLUE_CRAWLER_SCHEDULE"></a> [GLUE\_CRAWLER\_SCHEDULE](#input\_GLUE\_CRAWLER\_SCHEDULE) | Cron Expression for Glue Crawler's schedule | `string` | `"cron(0 12 * * ? *)"` | no |
 | <a name="input_GLUE_DB_NAME"></a> [GLUE\_DB\_NAME](#input\_GLUE\_DB\_NAME) | Glue database name | `string` | `"glue_database"` | no |
 | <a name="input_KINESIS_FIREHOSE_DELIVERY_STREAM_DESTINATION"></a> [KINESIS\_FIREHOSE\_DELIVERY\_STREAM\_DESTINATION](#input\_KINESIS\_FIREHOSE\_DELIVERY\_STREAM\_DESTINATION) | For setting the data destination | `string` | `"extended_s3"` | no |

@@ -91,3 +91,15 @@ variable "TAGS" {
   description = "Tag List"
   default     = null
 }
+
+variable "firehose_s3_kms_key_arn" {
+  description = "Optional Customer Managed KMS key ARN for server-side encryption of data delivered to S3 by Firehose. If not provided, data will be encrypted using an AWS S3-managed key (SSE-S3/AES256 by default for the extended_s3 destination)."
+  type        = string
+  default     = null
+}
+
+variable "firehose_stream_kms_key_arn" {
+  description = "Optional Customer Managed KMS key ARN to enable and use for Kinesis Data Firehose stream encryption. If not provided, stream encryption with a customer key is disabled."
+  type        = string
+  default     = null
+}

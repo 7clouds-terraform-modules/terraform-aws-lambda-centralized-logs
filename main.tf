@@ -1,3 +1,11 @@
+locals {
+  kms_key_arns_for_firehose = compact(tolist([
+    var.firehose_s3_kms_key_arn,
+    var.firehose_stream_kms_key_arn
+  ]))
+  # TODO: Consider adding user-provided S3 bucket's KMS key ARN here if it becomes an input
+}
+
 resource "aws_athena_workgroup" "athena_workgroup_logs" {
   description = "AthenaWorkgroup for centralized logs test."
   name        = var.PROJECT_NAME != "" ? "${var.PROJECT_NAME}AthenaWorkgroup" : "AthenaWorkgroup"
@@ -54,13 +62,23 @@ resource "aws_iam_role" "kinesis_role" {
             "kinesis:DescribeStream",
             "kinesis:GetShardIterator",
             "kinesis:GetRecords",
-            "kinesis:ListShards",
-            "kms:Decrypt",
-            "kms:GenerateDataKey",
-            "logs:PutLogEvents"])}"
+            "kinesis:ListShards"]}"
           Effect   = "Allow"
-          Resource = ["*"]
+          Resource = [aws_kinesis_firehose_delivery_stream.kinesis_firehose_delivery_stream.arn]
         },
+        {
+          Action = ["kms:Decrypt", "kms:GenerateDataKey"] # KMS permissions are scoped to provided keys. If no keys are provided, this defaults to '*' which is overly permissive and should be reviewed based on actual S3 bucket encryption.
+          Effect = "Allow"
+          Resource = length(local.kms_key_arns_for_firehose) > 0 ? local.kms_key_arns_for_firehose : ["*"]
+        },
+        {
+          Action = ["logs:PutLogEvents"]
+          Effect = "Allow"
+          Resource = [
+            "arn:aws:logs:*:*:log-group:/aws/kinesisfirehose/${aws_kinesis_firehose_delivery_stream.kinesis_firehose_delivery_stream.name}:*",
+            "arn:aws:logs:*:*:log-stream:/aws/kinesisfirehose/${aws_kinesis_firehose_delivery_stream.kinesis_firehose_delivery_stream.name}:*"
+          ]
+        }
       ]
     })
   }
@@ -80,8 +98,23 @@ resource "aws_kinesis_firehose_delivery_stream" "kinesis_firehose_delivery_strea
     prefix              = var.ENVIRONMENT != "" ? "logs/${var.ENVIRONMENT}${var.KINESIS_FIREHOSE_DELIVERY_STREAM_SUFFIX}" : "logs${var.KINESIS_FIREHOSE_DELIVERY_STREAM_SUFFIX}"
     error_output_prefix = var.ENVIRONMENT != "" ? "logs/${var.ENVIRONMENT}${var.KINESIS_FIREHOSE_DELIVERY_STREAM_ERROR_OUTPUT_SUFFIX}" : "logs${var.KINESIS_FIREHOSE_DELIVERY_STREAM_ERROR_OUTPUT_SUFFIX}"
     role_arn            = aws_iam_role.kinesis_role.arn
-    buffering_interval     = var.BUFFERING_INTERVAL_IN_SECONDS
-    buffering_size         = var.BUFFERING_SIZE_IN_MBS
+    buffering_interval  = var.BUFFERING_INTERVAL_IN_SECONDS
+    buffering_size      = var.BUFFERING_SIZE_IN_MBS
+    dynamic "encryption_configuration" {
+      for_each = var.firehose_s3_kms_key_arn != null ? [1] : []
+      content {
+        kms_encryption_config {
+          kms_key_arn = var.firehose_s3_kms_key_arn
+        }
+      }
+    }
+  }
+  dynamic "delivery_stream_encryption_configuration_input" {
+    for_each = var.firehose_stream_kms_key_arn != null ? [1] : []
+    content {
+      key_arn  = var.firehose_stream_kms_key_arn
+      key_type = "CUSTOMER_MANAGED_CMK"
+    }
   }
   tags = var.TAGS != null ? "${
     merge(var.TAGS, {
@@ -115,25 +148,53 @@ resource "aws_iam_role" "glue_role" {
       Version = "2012-10-17"
       Statement = [
         {
-          Action = ["s3:*"]
+          Action = [
+            "s3:GetObject",
+            "s3:PutObject",
+            "s3:DeleteObject"
+          ]
           Effect = "Allow"
-          Resource = ["${var.LOGS_BUCKET_ARN}",
-            "${var.LOGS_BUCKET_ARN}/*"
+          Resource = ["arn:aws:s3:::${var.LOGS_BUCKET_NAME}/logs/*"]
+        },
+        {
+          Action = ["s3:ListBucket"]
+          Effect = "Allow"
+          Resource = ["arn:aws:s3:::${var.LOGS_BUCKET_NAME}"]
+          Condition = {
+            StringLike = {
+              "s3:prefix" = ["logs/*"]
+            }
+          }
+        },
+        {
+          Action = ["glue:*"]
+          Effect = "Allow"
+          Resource = [
+            aws_glue_catalog_database.glue_database.arn,
+            "arn:aws:glue:*:*:catalog",
+            "arn:aws:glue:*:*:table/${aws_glue_catalog_database.glue_database.name}/*", #tfsec:ignore:AWS099
+            "arn:aws:glue:*:*:connection/*"                                           #tfsec:ignore:AWS099
+            # TODO: Further refine Glue permissions. Crawler needs specific permissions for catalog, its database, and tables.
+            # Consider grantable permissions like CreateTable, GetTable, UpdateTable, DeleteTable, etc. on specific database/table resources.
           ]
         },
         {
-          Action   = ["glue:*", "logs:*"]
-          Effect   = "Allow"
-          Resource = ["*"]
+          Action = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
+          Effect = "Allow"
+          Resource = [
+            "arn:aws:logs:*:*:log-group:/aws/glue/crawlers:*",
+            "arn:aws:logs:*:*:log-stream:/aws/glue/crawlers:*"
+            # TODO: If a specific log group name is used for the crawler, scope this further.
+          ]
         }
       ]
     })
   }
   tags = var.TAGS != null ? "${
     merge(var.TAGS, {
-      Name = var.PROJECT_NAME != "" ? "${var.PROJECT_NAME} Kinesis Role" : "Kinesis Role" }
+      Name = var.PROJECT_NAME != "" ? "${var.PROJECT_NAME} Glue Role" : "Glue Role" } # Corrected Tag Name
     )}" : {
-    Name = var.PROJECT_NAME != "" ? "${var.PROJECT_NAME} Kinesis Role" : "Kinesis Role"
+    Name = var.PROJECT_NAME != "" ? "${var.PROJECT_NAME} Glue Role" : "Glue Role" # Corrected Tag Name
   }
 }
 
